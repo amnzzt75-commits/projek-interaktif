@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Kuiz Karangan 1 vs 1 - Edisi Papan Putih Projektor & Tablet</title>
+
+  <!-- Pustaka MediaPipe Hands untuk Pengesanan 2 Pemain Serentak -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
+
+    :root {
+      --hijau: #16a34a;      /* Bila = masa */
+      --merah: #dc2626;      /* Siapa = orang */
+      --biru: #2563eb;       /* Di mana = tempat */
+      --oren: #ea580c;       /* Buat apa = aktiviti */
+      --pink: #ec4899;       /* Penanda wacana */
+      --ungu: #7c3aed;       /* Perasaan */
+      --player-a: #2563eb;   /* Biru */
+      --player-b: #e11d48;   /* Merah Cerah */
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      padding: 6px 10px;
+      font-family: 'Fredoka', sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+      height: 100vh;
+      max-height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: #ffffff;
+    }
+
+    /* HEADER */
+    header {
+      width: 100%;
+      max-width: 1180px;
+      background: #0f172a;
+      border: 3px solid #38bdf8;
+      border-radius: 16px;
+      padding: 6px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      box-shadow: 0 4px 15px rgba(56, 189, 248, 0.25);
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-size: 1rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge-battle {
+      background: #f59e0b;
+      color: #000;
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .btn-mode {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 2px solid #38bdf8;
+      background: #1e293b;
+      color: #38bdf8;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+    }
+
+    .btn-mode.active {
+      background: #22c55e;
+      border-color: #ffffff;
+      color: #ffffff;
+      box-shadow: 0 0 12px rgba(34, 197, 94, 0.7);
+    }
+
+    .btn-mode.whiteboard-active {
+      background: #f59e0b;
+      border-color: #ffffff;
+      color: #0f172a;
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.8);
+    }
+
+    /* ARENA UTAMA */
+    .arena-container {
+      width: 100%;
+      max-width: 1180px;
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 165px 1fr;
+      gap: 10px;
+      margin-top: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ZON PEMAIN */
+    .player-zone {
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 20px;
+      border: 4px solid transparent;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    .zone-a {
+      border-color: var(--player-a);
+      box-shadow: inset 0 0 25px rgba(37, 99, 235, 0.25);
+    }
+
+    .zone-b {
+      border-color: var(--player-b);
+      box-shadow: inset 0 0 25px rgba(225, 29, 72, 0.25);
+    }
+
+    .player-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 6px;
+      border-bottom: 2px dashed rgba(255, 255, 255, 0.2);
+    }
+
+    .player-tag {
+      font-size: 1.05rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tag-a { color: #60a5fa; }
+    .tag-b { color: #fb7185; }
+
+    .score-badge {
+      font-size: 1.25rem;
+      font-weight: 800;
+      background: #0f172a;
+      padding: 3px 14px;
+      border-radius: 999px;
+      border: 2px solid #e2e8f0;
+      color: #facc15;
+    }
+
+    .player-status-box {
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 12px;
+      padding: 6px 8px;
+      text-align: center;
+      font-size: 0.9rem;
+      font-weight: 600;
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    /* BUTANG JAWAPAN BESAR UNTUK PAPAN PUTIH PROJEKTOR */
+    .buttons-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 6px;
+      flex: 1;
+    }
+
+    .choice-btn {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      padding: 10px 6px;
+      border-radius: 16px;
+      border: 4px solid #ffffff;
+      color: #ffffff;
+      cursor: pointer;
+      box-shadow: 0 5px 0 rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.1s;
+    }
+
+    .choice-btn small {
+      font-size: 0.8rem;
+      font-weight: 600;
+      opacity: 0.95;
+      margin-top: 2px;
+    }
+
+    /* BAR KEMAJUAN SENTUHAN PAPAN PUTIH (DWELL BAR) */
+    .dwell-progress {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 8px;
+      width: 0%;
+      background: #facc15;
+      transition: width 0.06s linear;
+    }
+
+    .c-hijau { background: var(--hijau); }
+    .c-merah { background: var(--merah); }
+    .c-biru { background: var(--biru); }
+    .c-oren { background: var(--oren); }
+    .c-pink { background: var(--pink); }
+    .c-ungu { background: var(--ungu); }
+
+    /* KOLUM TENGAH */
+    .center-column {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      text-align: center;
+      padding: 2px 0;
+    }
+
+    .vs-badge {
+      background: linear-gradient(135deg, #f59e0b, #ef4444);
+      color: #ffffff;
+      font-size: 1.3rem;
+      font-weight: 800;
+      padding: 4px 14px;
+      border-radius: 14px;
+      border: 2px solid #ffffff;
+    }
+
+    .round-indicator {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #cbd5e1;
+    }
+
+    .word-card-box {
+      background: #ffffff;
+      color: #0f172a;
+      border: 4px solid #f59e0b;
+      border-radius: 18px;
+      padding: 12px 8px;
+      width: 100%;
+      box-shadow: 0 6px 0 #b45309;
+    }
+
+    .word-title {
+      font-size: 0.72rem;
+      color: #475569;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .main-word {
+      font-size: 1.3rem;
+      font-weight: 800;
+      margin-top: 4px;
+      line-height: 1.2;
+      color: #0f172a;
+    }
+
+    .center-speaker-btn {
+      background: #334155;
+      border: 2px solid #94a3b8;
+      color: white;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* MONITOR KAMERA + PANDUAN PAPAN PUTIH */
+    .mini-camera-box {
+      width: 100%;
+      background: #020617;
+      border-radius: 12px;
+      border: 2px solid #38bdf8;
+      overflow: hidden;
+      padding: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    .mini-camera-box video {
+      width: 100%;
+      height: 82px;
+      object-fit: cover;
+      border-radius: 8px;
+      background: #000;
+    }
+
+    .mirrored-video {
+      transform: scaleX(-1);
+    }
+
+    /* Bingkai Panduan Sasaran Papan Putih dalam Kamera */
+    .board-frame-guide {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      height: 70px;
+      border: 2px dashed #facc15;
+      border-radius: 6px;
+      pointer-events: none;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      font-size: 0.58rem;
+      color: #facc15;
+      font-weight: 700;
+      padding-bottom: 2px;
+      background: rgba(250, 204, 21, 0.08);
+    }
+
+    .camera-subtext {
+      font-size: 0.65rem;
+      color: #38bdf8;
+      font-weight: 600;
+      margin-top: 3px;
+    }
+
+    /* KURSOR TANGAN PEMAIN A & B */
+    .hand-cursor {
+      position: fixed;
+      width: 56px;
+      height: 56px;
+      margin-left: -28px;
+      margin-top: -28px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      font-weight: 800;
+      transition: transform 0.08s ease-out;
+    }
+
+    #cursor-p1 {
+      background: rgba(37, 99, 235, 0.9);
+      border: 4px solid #ffffff;
+      color: #ffffff;
+      box-shadow: 0 0 20px rgba(37, 99, 235, 1);
+    }
+
+    #cursor-p2 {
+      background: rgba(225, 29, 72, 0.9);
+      border: 4px solid #ffffff;
+      color: #ffffff;
+      box-shadow: 0 0 20px rgba(225, 29, 72, 1);
+    }
+
+    .hand-cursor.pinched {
+      transform: scale(0.75);
+      background: #22c55e !important;
+      border-color: #facc15 !important;
+    }
+
+    .hover-target-a {
+      outline: 5px solid #facc15 !important;
+      transform: scale(1.04);
+    }
+
+    .hover-target-b {
+      outline: 5px solid #facc15 !important;
+      transform: scale(1.04);
+    }
+
+    /* POP-UP TAHNIAH */
+    .popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      backdrop-filter: blur(5px);
+    }
+
+    .popup-card {
+      background: #ffffff;
+      color: #0f172a;
+      border: 6px solid #f59e0b;
+      border-radius: 28px;
+      box-shadow: 0 20px 0 #0f172a;
+      padding: 24px 32px;
+      text-align: center;
+      max-width: 450px;
+      width: 90%;
+      animation: popBounce 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .popup-icon { font-size: 3.4rem; margin-bottom: 6px; }
+    .popup-title { font-size: 1.7rem; font-weight: 800; margin: 0; color: #16a34a; }
+    .popup-msg { font-size: 1.15rem; font-weight: 700; margin: 10px 0 16px; color: #334155; }
+
+    .popup-btn {
+      font-family: 'Fredoka', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      background: #22c55e;
+      color: white;
+      border: 3px solid #0f172a;
+      border-radius: 999px;
+      padding: 10px 26px;
+      cursor: pointer;
+      box-shadow: 0 5px 0 #0f172a;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hidden { display: none !important; }
+
+    @keyframes popBounce {
+      0% { transform: scale(0.6); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- KURSOR PEMAIN A & PEMAIN B -->
+  <div id="cursor-p1" class="hand-cursor hidden">🖐️A</div>
+  <div id="cursor-p2" class="hand-cursor hidden">🖐️B</div>
+
+  <!-- POP-UP TAHNIAH / PEMENANG -->
+  <div id="popup-win" class="popup-overlay hidden">
+    <div class="popup-card">
+      <div id="pop-icon" class="popup-icon">🏆 🥇 🎉</div>
+      <h2 id="pop-title" class="popup-title">TAHNIAH!</h2>
+      <div id="pop-msg" class="popup-msg">Pemain A Berjaya Menjawab Paling Pantas!</div>
+      <button class="popup-btn" onclick="nextRoundOrRestart()">
+        PUSINGAN SETERUSNYA 🚀
+        <div class="dwell-progress"></div>
+      </button>
+    </div>
+  </div>
+
+  <!-- HEADER DENGAN PILIHAN MOD TABLET ATAU MOD PAPAN PUTIH PROJEKTOR -->
+  <header>
+    <div class="brand-title">
+      <span>⚔️ 1 VS 1 KARANGAN</span>
+      <span class="badge-battle">PAPAN PUTIH & TABLET</span>
+    </div>
+
+    <div class="header-actions">
+      <!-- Mod 1: Kamera Depan (Murid duduk depan tablet) -->
+      <button id="btn-front-cam" class="btn-mode" onclick="startCameraMode('front')">
+        🤳 Mod Kamera Depan (Cubit)
+      </button>
+
+      <!-- Mod 2: Kamera Belakang Menghadap Papan Putih Projektor (Murid tekan di papan putih) -->
+      <button id="btn-board-cam" class="btn-mode" onclick="startCameraMode('whiteboard')">
+        📽️ Mod Papan Putih Projektor (Tekan di Papan Putih)
+      </button>
+
+      <button id="btn-stop-cam" class="btn-mode hidden" onclick="stopCameraMode()">
+        ✖ Tutup Kamera
+      </button>
+    </div>
+  </header>
+
+  <!-- ARENA PERLAWANAN 1 VS 1 -->
+  <div class="arena-container">
+
+    <!-- ZON PEMAIN A (KIRI) -->
+    <div class="player-zone zone-a" id="zone-player-a">
+      <div class="player-header">
+        <div class="player-tag tag-a">
+          <span>🎮 PEMAIN A</span>
+          <small>(Sebelah Kiri)</small>
+        </div>
+        <div class="score-badge">⭐ <span id="score-a">0</span></div>
+      </div>
+
+      <div id="status-a" class="player-status-box">
+        🖐️ Tekan butang di papan putih atau sentuh skrin!
+      </div>
+
+      <div class="buttons-grid">
+        <button class="choice-btn c-hijau" onclick="handleAnswer('A', 'hijau')">
+          🟢 BILA<small>(Masa)</small>
+          <div class="dwell-progress"></div>
+        </button>
+        <button class="choice-btn c-merah" onclick="handleAnswer('A', 'merah')">
+          🔴 SIAPA<small>(Orang)</small>
+          <div class="dwell-progress"></div>
+        </button>
+        <button class="choice-btn c-biru" onclick="handleAnswer('A', 'biru')">
+          🔵 DI MANA<small>(Tempat)</small>
+          <div class="dwell-progress"></div>
+        </button>
+        <button class="choice-btn c-oren" onclick="handleAnswer('A', 'oren')">
+          🟠 BUAT APA<small>(Aktiviti)</small>
+          <div class="dwell-progress"></div>
+        </button>
+        <button class="choice-btn c-pink" onclick="handleAnswer('A', 'pink')">
+          🩷 PENANDA<small>(Wacana)</small>
+          <div class="dwell-progress"></div>
+        </button>
+        <button class="choice-btn c-ungu" onclick="handleAnswer('A', 'ungu')">
+          🟣 PERASAAN<small>(Emosi)</small>
+          <div class="dwell-progress"></div>
+        </button>
+      </div>
+    </div>
+
+    <!-- BAHAGIAN TENGAH (SOALAN & KAMERA MONITOR) -->
+    <div class="center-column">
+      <div class="vs-badge">VS</div>
+      <div class="round-indicator">Pusingan <span id="round-num">1</span> / 7</div>
+
+      <div class="word-card-box">
+        <div class="word-title">🎯 Teka Kategori Warna:</div>
+        <div id="target-word" class="main-word">waktu petang</div>
+      </div>
+
+      <button class="center-speaker-btn" onclick="speakCurrentWord()">🔊 Sebut Soalan</button>
+
+      <!-- MONITOR KAMERA -->
+      <div class="mini-camera-box">
+        <video id="webcam-feed" class="mirrored-video" playsinline muted autoplay></video>
+        <div id="board-guide" class="board-frame-guide hidden">Halakan ke Papan Putih</div>
+        <div id="camera-label" class="camera-subtext">Mod Sentuh Skrin Aktif</div>
+      </div>
+    </div>
+
+    <!-- ZON PEMAIN B (KANAN) -->
+    <div class="player-zone zone-b" id="zone-player-b">
+      <div class="player-header">
+        <div class="player-tag tag-b">
+          <span>🎮 PEMAIN B</span>
+          <small>(Sebelah Kanan)</small>
+        </div>
+        <div class="score-badge">⭐ <span id="score-b">0</span></div>
+      </div>
+
+      <div id="status-b" class="player-status-box">
+        🖐️ Tekan butang di papan putih atau sentuh skrin!
+      </div>
+
+      <div class="buttons-grid">
+        <button class="choice-btn c-hijau" onclick="handleAnswer('B', 'hijau')">
+          🟢 BILA<small>(Masa)</small>
+          <div class="dwell-progress"></div>
+        </button>
+        <button class="choice-btn c-merah" onclick="handleAnswer('B', 'merah')">
+          🔴 SIAPA<small>(Orang)</small>
+          <div class="dwell-progress"></div>
+        </button>
+        <button class="choice-btn c-biru" onclick="handleAnswer('B', 'biru')">
+          🔵 DI MANA<small>(Tempat)</small>
+          <div class="dwell-progress"></div>
+        </button>
+        <button class="choice-btn c-oren" onclick="handleAnswer('B', 'oren')">
+          🟠 BUAT APA<small>(Aktiviti)</small>
+          <div class="dwell-progress"></div>
+        </button>
+        <button class="choice-btn c-pink" onclick="handleAnswer('B', 'pink')">
+          🩷 PENANDA<small>(Wacana)</small>
+          <div class="dwell-progress"></div>
+        </button>
+        <button class="choice-btn c-ungu" onclick="handleAnswer('B', 'ungu')">
+          🟣 PERASAAN<small>(Emosi)</small>
+          <div class="dwell-progress"></div>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    /* ========================================================
+       SOALAN BERDASARKAN NOTA TEKNIK KARANGAN CIKGU AINA
+    ======================================================== */
+    const battleQuestions = [
+      { word: "waktu petang", answer: "hijau" },
+      { word: "saya dan keluarga", answer: "merah" },
+      { word: "kolam renang", answer: "biru" },
+      { word: "mandi bersama-sama", answer: "oren" },
+      { word: "Pertama / Kemudian", answer: "pink" },
+      { word: "berasa gembira", answer: "ungu" },
+      { word: "membantu adik", answer: "oren" }
+    ];
+
+    let currentRoundIndex = 0;
+    let scoreA = 0;
+    let scoreB = 0;
+    let roundLocked = false;
+    let autoNextTimer = null;
+
+    const roundNumEl = document.getElementById('round-num');
+    const targetWordEl = document.getElementById('target-word');
+    const scoreAEl = document.getElementById('score-a');
+    const scoreBEl = document.getElementById('score-b');
+    const statusAEl = document.getElementById('status-a');
+    const statusBEl = document.getElementById('status-b');
+    const popupWin = document.getElementById('popup-win');
+    const popTitle = document.getElementById('pop-title');
+    const popMsg = document.getElementById('pop-msg');
+
+    function loadRound() {
+      roundLocked = false;
+      if (autoNextTimer) clearTimeout(autoNextTimer);
+      const q = battleQuestions[currentRoundIndex];
+      roundNumEl.textContent = currentRoundIndex + 1;
+      targetWordEl.textContent = q.word;
+
+      statusAEl.innerHTML = "🎯 Tekan warna jawapan yang betul!";
+      statusBEl.innerHTML = "🎯 Tekan warna jawapan yang betul!";
+      statusAEl.style.color = "#ffffff";
+      statusBEl.style.color = "#ffffff";
+
+      speakText("Soalan: " + q.word);
+    }
+
+    function speakCurrentWord() {
+      speakText(battleQuestions[currentRoundIndex].word);
+    }
+
+    function speakText(text) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = 'ms-MY';
+        utter.rate = 0.95;
+        window.speechSynthesis.speak(utter);
+      }
+    }
+
+    function playAudio(type) {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (type === 'win') {
+          osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+          osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.08);
+          osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.16);
+          osc.frequency.setValueAtTime(1046.50, ctx.currentTime + 0.24);
+          gain.gain.setValueAtTime(0.3, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.5);
+        } else {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(175, ctx.currentTime);
+          gain.gain.setValueAtTime(0.2, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.22);
+        }
+      } catch (e) {}
+    }
+
+    function handleAnswer(player, chosenColor) {
+      if (roundLocked) return;
+      const q = battleQuestions[currentRoundIndex];
+
+      if (chosenColor === q.answer) {
+        roundLocked = true;
+        playAudio('win');
+
+        if (player === 'A') {
+          scoreA += 10;
+          scoreAEl.textContent = scoreA;
+          statusAEl.innerHTML = "🎉 <strong>TAHNIAH! Pemain A Menang!</strong>";
+          statusAEl.style.color = "#4ade80";
+          showWinnerPopup("TAHNIAH PEMAIN A! 🔵", "Pemain A berjaya menekan jawapan paling pantas! (+10 Mata)");
+        } else {
+          scoreB += 10;
+          scoreBEl.textContent = scoreB;
+          statusBEl.innerHTML = "🎉 <strong>TAHNIAH! Pemain B Menang!</strong>";
+          statusBEl.style.color = "#fb7185";
+          showWinnerPopup("TAHNIAH PEMAIN B! 🔴", "Pemain B berjaya menekan jawapan paling pantas! (+10 Mata)");
+        }
+
+        // Auto teruskan selepas 2.5 saat supaya murid di papan putih tidak perlu balik ke tablet
+        autoNextTimer = setTimeout(() => {
+          if (!popupWin.classList.contains('hidden')) {
+            nextRoundOrRestart();
+          }
+        }, 2600);
+      } else {
+        playAudio('wrong');
+        if (player === 'A') {
+          statusAEl.innerHTML = "❌ Belum tepat! Cuba warna lain!";
+          statusAEl.style.color = "#f87171";
+        } else {
+          statusBEl.innerHTML = "❌ Belum tepat! Cuba warna lain!";
+          statusBEl.style.color = "#f87171";
+        }
+      }
+    }
+
+    function showWinnerPopup(title, msg) {
+      popTitle.textContent = title;
+      popMsg.textContent = msg;
+      popupWin.classList.remove('hidden');
+      speakText(title);
+    }
+
+    function nextRoundOrRestart() {
+      if (autoNextTimer) clearTimeout(autoNextTimer);
+      popupWin.classList.add('hidden');
+      currentRoundIndex++;
+
+      if (currentRoundIndex < battleQuestions.length) {
+        loadRound();
+      } else {
+        let finalMsg = "";
+        if (scoreA > scoreB) {
+          finalMsg = `🏆 JUARA: PEMAIN A (${scoreA} lawan ${scoreB})!`;
+        } else if (scoreB > scoreA) {
+          finalMsg = `🏆 JUARA: PEMAIN B (${scoreB} lawan ${scoreA})!`;
+        } else {
+          finalMsg = `🤝 KEPUTUSAN SERI (${scoreA} - ${scoreB})!`;
+        }
+        showWinnerPopup("PERLAWANAN TAMAT!", finalMsg);
+        currentRoundIndex = -1;
+        scoreA = 0;
+        scoreB = 0;
+        scoreAEl.textContent = 0;
+        scoreBEl.textContent = 0;
+      }
+    }
+
+    /* ========================================================
+       SISTEM KAMERA DWI-MOD:
+       1. 'front'      -> Kamera Depan Tablet (Mirrored + Pinch)
+       2. 'whiteboard' -> Kamera Belakang Menghadap Papan Putih Projektor
+                          (Non-Mirrored + Sentuh/Tahan 0.6s di Papan Putih)
+    ======================================================== */
+    let activeMode = null; // 'front' atau 'whiteboard'
+    let handsEngine = null;
+    let cameraStream = null;
+    let animId = null;
+
+    const videoEl = document.getElementById('webcam-feed');
+    const btnFront = document.getElementById('btn-front-cam');
+    const btnBoard = document.getElementById('btn-board-cam');
+    const btnStop = document.getElementById('btn-stop-cam');
+    const boardGuide = document.getElementById('board-guide');
+    const cameraLabel = document.getElementById('camera-label');
+
+    const cursorA = document.getElementById('cursor-p1');
+    const cursorB = document.getElementById('cursor-p2');
+
+    let p1Smooth = { x: window.innerWidth * 0.25, y: window.innerHeight * 0.5 };
+    let p2Smooth = { x: window.innerWidth * 0.75, y: window.innerHeight * 0.5 };
+
+    let p1Pinched = false;
+    let p2Pinched = false;
+    let lastHoverA = null;
+    let lastHoverB = null;
+
+    // Pemasa Tekan di Papan Putih (Dwell 0.6s untuk mod projektor)
+    let dwellCountA = 0;
+    let dwellCountB = 0;
+    const DWELL_THRESHOLD = 14; // ~0.55 saat apabila murid meletakkan tangan pada butang di papan putih
+
+    async function startCameraMode(mode) {
+      stopCameraMode();
+      activeMode = mode;
+
+      cameraLabel.textContent = "⏳ Membuka kamera...";
+
+      try {
+        if (!handsEngine) {
+          handsEngine = new Hands({
+            locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
+          });
+          handsEngine.setOptions({
+            maxNumHands: 2,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.6,
+            minTrackingConfidence: 0.6
+          });
+          handsEngine.onResults(onDualHandResults);
+        }
+
+        // Jika Mod Papan Putih, guna kamera belakang ('environment') menghadap papan putih
+        const facing = (mode === 'whiteboard') ? { ideal: "environment" } : "user";
+
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: facing,
+            width: { ideal: 640 },
+            height: { ideal: 360 }
+          },
+          audio: false
+        });
+
+        videoEl.srcObject = cameraStream;
+        await videoEl.play();
+
+        if (mode === 'whiteboard') {
+          videoEl.classList.remove('mirrored-video'); // Jangan terbalikkan sebab kamera menghadap terus ke papan putih
+          btnBoard.classList.add('whiteboard-active');
+          boardGuide.classList.remove('hidden');
+          cameraLabel.textContent = "📽️ Papan Putih: Tekan बटंग 0.6s";
+        } else {
+          videoEl.classList.add('mirrored-video');
+          btnFront.classList.add('active');
+          boardGuide.classList.add('hidden');
+          cameraLabel.textContent = "🤳 Kamera Depan: Cubit Jari";
+        }
+
+        btnStop.classList.remove('hidden');
+        cursorA.classList.remove('hidden');
+        cursorB.classList.remove('hidden');
+
+        runCameraLoop();
+      } catch (err) {
+        console.error(err);
+        cameraLabel.textContent = "❌ Kamera Gagal Dibuka";
+        alert("Pastikan anda membuka permainan melalui pautan HTTPS (Tiiny.host / PlayCode) dan benarkan akses kamera!");
+      }
+    }
+
+    function stopCameraMode() {
+      activeMode = null;
+      if (animId) cancelAnimationFrame(animId);
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(t => t.stop());
+        cameraStream = null;
+      }
+      cursorA.classList.add('hidden');
+      cursorB.classList.add('hidden');
+      btnFront.classList.remove('active');
+      btnBoard.classList.remove('whiteboard-active');
+      btnStop.classList.add('hidden');
+      boardGuide.classList.add('hidden');
+      cameraLabel.textContent = "Mod Sentuh Skrin Aktif";
+      clearHoverA();
+      clearHoverB();
+    }
+
+    function clearHoverA() {
+      if (lastHoverA) {
+        lastHoverA.classList.remove('hover-target-a');
+        const bar = lastHoverA.querySelector('.dwell-progress');
+        if (bar) bar.style.width = '0%';
+        lastHoverA = null;
+      }
+      dwellCountA = 0;
+    }
+
+    function clearHoverB() {
+      if (lastHoverB) {
+        lastHoverB.classList.remove('hover-target-b');
+        const bar = lastHoverB.querySelector('.dwell-progress');
+        if (bar) bar.style.width = '0%';
+        lastHoverB = null;
+      }
+      dwellCountB = 0;
+    }
+
+    async function runCameraLoop() {
+      if (!activeMode) return;
+      if (videoEl.readyState >= 2 && handsEngine) {
+        await handsEngine.send({ image: videoEl });
+      }
+      animId = requestAnimationFrame(runCameraLoop);
+    }
+
+    function onDualHandResults(results) {
+      if (!activeMode) return;
+      const hands = results.multiHandLandmarks || [];
+
+      if (hands.length === 0) {
+        clearHoverA();
+        clearHoverB();
+        return;
+      }
+
+      let foundA = false;
+      let foundB = false;
+
+      hands.forEach((lm) => {
+        const indexTip = lm[8];
+        const thumbTip = lm[4];
+        const wrist = lm[0];
+        const middleMcp = lm[9];
+
+        // Jika Mod Kamera Depan: terbalikkan X (cermin)
+        // Jika Mod Papan Putih Projektor: guna X sebenar kerana kamera belakang menghadap papan putih
+        const normX = (activeMode === 'front') ? (1 - indexTip.x) : indexTip.x;
+        const normY = indexTip.y;
+
+        const screenX = normX * window.innerWidth;
+        const screenY = normY * window.innerHeight;
+
+        const palmSize = Math.hypot(wrist.x - middleMcp.x, wrist.y - middleMcp.y) || 0.1;
+        const pinchDist = Math.hypot(indexTip.x - thumbTip.x, indexTip.y - thumbTip.y);
+        const isPinching = (pinchDist / palmSize) < 0.28;
+
+        // ZON KIRI = PEMAIN A
+        if (screenX < window.innerWidth / 2) {
+          foundA = true;
+          p1Smooth.x = p1Smooth.x * 0.55 + screenX * 0.45;
+          p1Smooth.y = p1Smooth.y * 0.55 + screenY * 0.45;
+          cursorA.style.left = `${p1Smooth.x}px`;
+          cursorA.style.top = `${p1Smooth.y}px`;
+
+          const elem = document.elementFromPoint(p1Smooth.x, p1Smooth.y);
+          const btn = elem ? elem.closest('#zone-player-a .choice-btn, .popup-btn') : null;
+
+          if (btn !== lastHoverA) {
+            clearHoverA();
+            if (btn) {
+              btn.classList.add('hover-target-a');
+              lastHoverA = btn;
+            }
+          }
+
+          // Mod Papan Putih: Murid hanya perlu sentuh/tahan tangan di atas butang papan putih selama 0.6s
+          if (activeMode === 'whiteboard' && btn) {
+            dwellCountA++;
+            const bar = btn.querySelector('.dwell-progress');
+            const pct = Math.min(100, (dwellCountA / DWELL_THRESHOLD) * 100);
+            if (bar) bar.style.width = `${pct}%`;
+
+            if (dwellCountA >= DWELL_THRESHOLD) {
+              dwellCountA = 0;
+              if (bar) bar.style.width = '0%';
+              btn.click();
+            }
+          }
+
+          // Cubitan jari juga disokong pada kedua-dua mod
+          if (isPinching && !p1Pinched) {
+            p1Pinched = true;
+            cursorA.classList.add('pinched');
+            if (btn) btn.click();
+          } else if (!isPinching) {
+            p1Pinched = false;
+            cursorA.classList.remove('pinched');
+          }
+        }
+        // ZON KANAN = PEMAIN B
+        else {
+          foundB = true;
+          p2Smooth.x = p2Smooth.x * 0.55 + screenX * 0.45;
+          p2Smooth.y = p2Smooth.y * 0.55 + screenY * 0.45;
+          cursorB.style.left = `${p2Smooth.x}px`;
+          cursorB.style.top = `${p2Smooth.y}px`;
+
+          const elem = document.elementFromPoint(p2Smooth.x, p2Smooth.y);
+          const btn = elem ? elem.closest('#zone-player-b .choice-btn, .popup-btn') : null;
+
+          if (btn !== lastHoverB) {
+            clearHoverB();
+            if (btn) {
+              btn.classList.add('hover-target-b');
+              lastHoverB = btn;
+            }
+          }
+
+          if (activeMode === 'whiteboard' && btn) {
+            dwellCountB++;
+            const bar = btn.querySelector('.dwell-progress');
+            const pct = Math.min(100, (dwellCountB / DWELL_THRESHOLD) * 100);
+            if (bar) bar.style.width = `${pct}%`;
+
+            if (dwellCountB >= DWELL_THRESHOLD) {
+              dwellCountB = 0;
+              if (bar) bar.style.width = '0%';
+              btn.click();
+            }
+          }
+
+          if (isPinching && !p2Pinched) {
+            p2Pinched = true;
+            cursorB.classList.add('pinched');
+            if (btn) btn.click();
+          } else if (!isPinching) {
+            p2Pinched = false;
+            cursorB.classList.remove('pinched');
+          }
+        }
+      });
+
+      if (!foundA) clearHoverA();
+      if (!foundB) clearHoverB();
+    }
+
+    loadRound();
+  </script>
+</body>
+</html>
